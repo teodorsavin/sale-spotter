@@ -6,7 +6,7 @@ import (
 	model "teodorsavin/ah-bonus/model"
 )
 
-func AllProducts() model.BonusProducts {
+func GetAllProducts() model.BonusProducts {
 	var product model.Product
 	bonusProducts := model.BonusProducts{}
 
@@ -18,7 +18,8 @@ func AllProducts() model.BonusProducts {
 		`SELECT 
     			webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status, 
     			main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus 
-			FROM products`,
+			FROM products
+			WHERE inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND`,
 	)
 	if err != nil {
 		log.Print(err)
