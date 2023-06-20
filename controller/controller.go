@@ -2,8 +2,8 @@ package controller
 
 import (
 	"log"
-	config "teodorsavin/ah-bonus/Config"
-	model "teodorsavin/ah-bonus/Model"
+	config "teodorsavin/ah-bonus/config"
+	model "teodorsavin/ah-bonus/model"
 )
 
 func AllProducts() model.BonusProducts {
