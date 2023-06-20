@@ -2,27 +2,40 @@ package controller
 
 import (
 	"log"
-	config "teodorsavin/ah-bonus/config"
-	model "teodorsavin/ah-bonus/model"
+
+	"teodorsavin/ah-bonus/config"
+	"teodorsavin/ah-bonus/model"
+)
+
+const (
+	selectProductsQuery = `SELECT 
+			webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status, 
+			main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus 
+		FROM products
+		WHERE inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND`
+
+	selectBrandsQuery = `SELECT DISTINCT brand
+		FROM products
+		WHERE inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND
+		ORDER BY brand ASC`
+
+	insertProductQuery = `INSERT INTO products 
+		(webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status,
+		main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 )
 
 func GetAllProducts() model.BonusProducts {
 	var product model.Product
 	bonusProducts := model.BonusProducts{}
 
-	db := config.Connect()
+	db := config.ConnectDB()
 	defer db.Close()
 
-	rows, err := db.Query(
-		// images, discountLabels
-		`SELECT 
-    			webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status, 
-    			main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus 
-			FROM products
-			WHERE inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND`,
-	)
+	rows, err := db.Query(selectProductsQuery)
 	if err != nil {
 		log.Print(err)
+		return bonusProducts
 	}
 
 	for rows.Next() {
@@ -43,7 +56,7 @@ func GetAllProducts() model.BonusProducts {
 			&product.IsBonus,
 		)
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Print(err.Error())
 		} else {
 			bonusProducts.Products = append(bonusProducts.Products, product)
 		}
@@ -56,24 +69,19 @@ func AllBrands() model.Brands {
 	var brand string
 	brands := model.Brands{}
 
-	db := config.Connect()
+	db := config.ConnectDB()
 	defer db.Close()
 
-	rows, err := db.Query(
-		// images, discountLabels
-		`SELECT DISTINCT brand
-				FROM products
-				WHERE inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND
-				ORDER BY brand ASC;`,
-	)
+	rows, err := db.Query(selectBrandsQuery)
 	if err != nil {
 		log.Print(err)
+		return brands
 	}
 
 	for rows.Next() {
 		err = rows.Scan(&brand)
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Print(err.Error())
 		} else {
 			brands = append(brands, brand)
 		}
@@ -82,39 +90,58 @@ func AllBrands() model.Brands {
 	return brands
 }
 
-func InsertProduct(product model.Product) {
-	db := config.Connect()
+func InsertProduct(product model.Product) error {
+	db := config.ConnectDB()
 	defer db.Close()
 
-	webshopId := product.WebshopId
-	hqId := product.HqId
-	title := product.Title
-	salesUnitSize := product.SalesUnitSize
-	currentPrice := product.CurrentPrice
-	priceBeforeBonus := product.PriceBeforeBonus
-	orderAvailabilityStatus := product.OrderAvailabilityStatus
-	mainCategory := product.MainCategory
-	subCategory := product.SubCategory
-	brand := product.Brand
-	availableOnline := product.AvailableOnline
-	descriptionHighlights := product.DescriptionHighlights
-	descriptionFull := product.DescriptionFull
-	isBonus := product.IsBonus
-
-	_, err := db.Exec(`INSERT INTO products 
-    	(webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status,
-		main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		webshopId, hqId, title, salesUnitSize, currentPrice, priceBeforeBonus, orderAvailabilityStatus, mainCategory,
-		subCategory, brand, availableOnline, descriptionHighlights, descriptionFull, isBonus)
+	_, err := db.Exec(insertProductQuery,
+		product.WebshopId, product.HqId, product.Title, product.SalesUnitSize, product.CurrentPrice,
+		product.PriceBeforeBonus, product.OrderAvailabilityStatus, product.MainCategory, product.SubCategory,
+		product.Brand, product.AvailableOnline, product.DescriptionHighlights, product.DescriptionFull, product.IsBonus)
 	if err != nil {
 		log.Print(err)
-		return
+		return err
 	}
+
+	return nil
 }
 
-func InsertProductsBulk(products []model.Product) {
-	for _, product := range products {
-		InsertProduct(product)
+func InsertProductsBulk(products []model.Product) error {
+	db := config.ConnectDB()
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Print(err)
+		return err
 	}
+
+	stmt, err := tx.Prepare(insertProductQuery)
+	if err != nil {
+		log.Print(err)
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, product := range products {
+		_, err := stmt.Exec(
+			product.WebshopId, product.HqId, product.Title, product.SalesUnitSize, product.CurrentPrice,
+			product.PriceBeforeBonus, product.OrderAvailabilityStatus, product.MainCategory, product.SubCategory,
+			product.Brand, product.AvailableOnline, product.DescriptionHighlights, product.DescriptionFull, product.IsBonus,
+		)
+		if err != nil {
+			log.Print(err)
+			tx.Rollback()
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	return nil
 }

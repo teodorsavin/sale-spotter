@@ -5,7 +5,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func Connect() *sql.DB {
+func ConnectDB() *sql.DB {
 	dbDriver := "mysql"
 	dbUser := "user"
 	dbPass := "secret"
