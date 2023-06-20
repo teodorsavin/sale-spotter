@@ -182,8 +182,8 @@ func getBrands(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, data)
 }
 
-func saveProducts(c *gin.Context) {
-	filename := "../usr/src/app/test.json"
+func saveProductsDebug(c *gin.Context) {
+	filename := "../usr/src/app/database-sample/test.json"
 
 	// Get the absolute path of the file based on the current working directory
 	absPath, err := filepath.Abs(filename)
@@ -217,7 +217,7 @@ func main() {
 	router.GET("/brands", getBrands)
 
 	// to save all products from test.json into the database
-	router.GET("/saveproducts", saveProducts)
+	router.GET("/test/saveproducts", saveProductsDebug)
 
 	router.Run("0.0.0.0:8080")
 }
