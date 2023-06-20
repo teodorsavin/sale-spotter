@@ -29,7 +29,6 @@ func AllProducts() model.BonusProducts {
 			&product.WebshopId,
 			&product.HqId,
 			&product.Title,
-			&product.Title,
 			&product.SalesUnitSize,
 			&product.CurrentPrice,
 			&product.PriceBeforeBonus,

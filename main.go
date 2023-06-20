@@ -175,7 +175,7 @@ func getProducts(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, data)
 }
 
-// getProducts responds with the list of all brands as JSON.
+// getBrands responds with the list of all brands as JSON.
 func getBrands(c *gin.Context) {
 	data := controller.AllBrands()
 
