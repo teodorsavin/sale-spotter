@@ -2,7 +2,7 @@
 #### Init app
 ```bash
 go get .
-go mod doanload
+go mod download
 ```
 
 #### Run app
