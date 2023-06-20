@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -185,23 +183,9 @@ func getBrands(c *gin.Context) {
 func saveProductsDebug(c *gin.Context) {
 	filename := "../usr/src/app/database-sample/test.json"
 
-	// Get the absolute path of the file based on the current working directory
-	absPath, err := filepath.Abs(filename)
-	if err != nil {
-		fmt.Printf("Error getting absolute path: %v\n", err)
-		return
-	}
-
-	if _, err = os.Stat(absPath); err == nil {
-		fmt.Printf("File exists\n")
-	} else {
-		fmt.Printf("File does not exist\n")
-		fmt.Printf(absPath + "\n")
-	}
-
 	file, _ := os.ReadFile(filename)
 	var data model.BonusProducts
-	err = json.Unmarshal(file, &data)
+	err := json.Unmarshal(file, &data)
 	if err != nil {
 		log.Fatalf("impossible to read/unmarshall test.json: %s", err)
 	}
