@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"teodorsavin/ah-bonus/service"
 	"time"
 
 	controller "teodorsavin/ah-bonus/controller"
@@ -21,14 +22,17 @@ const (
 func getProducts(c *gin.Context) {
 	data := controller.GetAllProducts()
 
-	//if data.Products == nil {
-	//	apiClient := service.NewAPIClient(baseUrl, timeout)
-	//
-	//	token := apiClient.Login()
-	//	dataFromApi := apiClient.GetProducts(token, 0)
-	//
-	//	data = dataFromApi
-	//}
+	// If we don't find products in out database, we call the API and save products in our database
+	if len(data.Products) == 0 {
+		apiClient := service.NewAPIClient(baseUrl, timeout)
+		token := apiClient.Login()
+		dataFromAPI := apiClient.GetProducts(token, 0)
+
+		if len(dataFromAPI.Products) > 0 {
+			controller.InsertProductsBulk(dataFromAPI.Products)
+			data = dataFromAPI
+		}
+	}
 
 	c.IndentedJSON(http.StatusOK, data)
 }
