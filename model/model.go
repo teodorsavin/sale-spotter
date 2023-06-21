@@ -1,5 +1,7 @@
 package model
 
+import "database/sql"
+
 type Product struct {
 	WebshopId               int32           `form:"webshop_id" json:"webshopId"`
 	HqId                    int32           `form:"hq_id" json:"hqId"`
@@ -43,6 +45,8 @@ type Categories []string
 type Response struct {
 	Data []BonusProducts
 }
+
+type DBRows = *sql.Rows
 
 func (b Brands) ContainsBrand(e string) bool {
 	for _, a := range b {
