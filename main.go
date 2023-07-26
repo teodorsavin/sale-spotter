@@ -61,10 +61,9 @@ func jwtTokenCheck(tokenString string) (string, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		str := fmt.Sprintf("%v", claims["username"])
 		return str, nil
-	} else {
-		fmt.Println(err)
-		return "", err
 	}
+
+	return "", err
 }
 
 func extractBearerToken(header string) (string, error) {
