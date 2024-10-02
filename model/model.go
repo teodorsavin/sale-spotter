@@ -1,36 +1,41 @@
 package model
 
-import "database/sql"
+import "gorm.io/gorm"
 
 type Product struct {
-	WebshopId               int32           `form:"webshop_id" json:"webshopId"`
-	HqId                    int32           `form:"hq_id" json:"hqId"`
-	Title                   string          `form:"title" json:"title"`
-	SalesUnitSize           string          `form:"sales_unit_size" json:"salesUnitSize"`
-	Images                  []Image         `form:"images" json:"images"`
-	CurrentPrice            float32         `form:"current_price" json:"currentPrice"`
-	PriceBeforeBonus        float32         `form:"price_before_bonus" json:"priceBeforeBonus"`
-	OrderAvailabilityStatus string          `form:"order_availability_status" json:"orderAvailabilityStatus"`
-	MainCategory            string          `form:"main_category" json:"mainCategory"`
-	SubCategory             string          `form:"sub_category" json:"subCategory"`
-	Brand                   string          `form:"brand" json:"brand"`
-	AvailableOnline         bool            `form:"available_online" json:"availableOnline"`
-	DescriptionHighlights   string          `form:"description_highlights" json:"descriptionHighlights"`
-	DescriptionFull         string          `form:"description_full" json:"descriptionFull"`
-	IsBonus                 bool            `form:"is_bonus" json:"isBonus"`
-	DiscountLabels          []DiscountLabel `form:"discount_labels" json:"discountLabels"`
+	gorm.Model
+	WebshopId               int32           `json:"webshopId"`
+	HqId                    int32           `json:"hqId"`
+	Title                   string          `json:"title"`
+	SalesUnitSize           string          `json:"salesUnitSize"`
+	Images                  []Image         `gorm:"foreignKey:ProductID"`
+	CurrentPrice            float32         `json:"currentPrice"`
+	PriceBeforeBonus        float32         `json:"priceBeforeBonus"`
+	OrderAvailabilityStatus string          `json:"orderAvailabilityStatus"`
+	MainCategory            string          `json:"mainCategory"`
+	SubCategory             string          `json:"subCategory"`
+	Brand                   string          `json:"brand"`
+	AvailableOnline         bool            `json:"availableOnline"`
+	DescriptionHighlights   string          `json:"descriptionHighlights"`
+	DescriptionFull         string          `json:"descriptionFull"`
+	IsBonus                 bool            `json:"isBonus"`
+	DiscountLabels          []DiscountLabel `gorm:"foreignKey:ProductID"`
 }
 
 type Image struct {
-	Width  int32  `form:"width" json:"width"`
-	Height int32  `form:"height" json:"height"`
-	Url    string `form:"url" json:"url"`
+	gorm.Model
+	ProductID uint   `json:"-"` // Foreign key to Product
+	Width     int32  `json:"width"`
+	Height    int32  `json:"height"`
+	Url       string `json:"url"`
 }
 
 type DiscountLabel struct {
-	Code               string  `form:"code" json:"code"`
-	DefaultDescription string  `form:"default_description" json:"defaultDescription"`
-	Price              float32 `form:"price" json:"price"`
+	gorm.Model
+	ProductID          uint    `json:"-"` // Foreign key to Product
+	Code               string  `json:"code"`
+	DefaultDescription string  `json:"defaultDescription"`
+	Price              float32 `json:"price"`
 }
 
 type BonusProducts struct {
@@ -45,8 +50,6 @@ type Categories []string
 type Response struct {
 	Data []BonusProducts
 }
-
-type DBRows = *sql.Rows
 
 func (b Brands) ContainsBrand(e string) bool {
 	for _, a := range b {
