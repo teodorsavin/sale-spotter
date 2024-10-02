@@ -20,36 +20,6 @@ type Page struct {
 	Number        int32 `json:"number"`
 }
 
-//func (c *APIClient) GetProducts(accessToken string, page int32) model.BonusProducts {
-//	pageNumber := int32(0)
-//	totalPages := int32(0)
-//
-//	req := c.BuildGetProductsRequest(accessToken, page)
-//	res := c.DoRequest(req)
-//	searchData := c.ReadResponseBodyGetProducts(res)
-//
-//	pageNumber = searchData.Page.Number
-//	totalPages = searchData.Page.TotalPages
-//	bonusProducts := c.GetBonusProducts(searchData)
-//
-//	if pageNumber < totalPages {
-//		pageNumber++
-//		sleepDuration := time.Second
-//		ctx, cancel := context.WithTimeout(context.Background(), sleepDuration)
-//		defer cancel()
-//
-//		select {
-//		case <-time.After(sleepDuration):
-//			nextProducts := c.GetProducts(accessToken, pageNumber)
-//			bonusProducts.Products = append(bonusProducts.Products, nextProducts.Products...)
-//		case <-ctx.Done():
-//			log.Println("Sleep duration exceeded, continuing without the next products.")
-//		}
-//	}
-//
-//	return bonusProducts
-//}
-
 func (c *APIClient) GetProducts(accessToken string, page int32) model.BonusProducts {
 	totalPages := int32(0)
 	productsCh := make(chan []model.Product)
