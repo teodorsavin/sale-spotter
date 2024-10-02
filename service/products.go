@@ -1,13 +1,10 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
-
 	"teodorsavin/ah-bonus/model"
 )
 
@@ -23,34 +20,70 @@ type Page struct {
 	Number        int32 `json:"number"`
 }
 
+//func (c *APIClient) GetProducts(accessToken string, page int32) model.BonusProducts {
+//	pageNumber := int32(0)
+//	totalPages := int32(0)
+//
+//	req := c.BuildGetProductsRequest(accessToken, page)
+//	res := c.DoRequest(req)
+//	searchData := c.ReadResponseBodyGetProducts(res)
+//
+//	pageNumber = searchData.Page.Number
+//	totalPages = searchData.Page.TotalPages
+//	bonusProducts := c.GetBonusProducts(searchData)
+//
+//	if pageNumber < totalPages {
+//		pageNumber++
+//		sleepDuration := time.Second
+//		ctx, cancel := context.WithTimeout(context.Background(), sleepDuration)
+//		defer cancel()
+//
+//		select {
+//		case <-time.After(sleepDuration):
+//			nextProducts := c.GetProducts(accessToken, pageNumber)
+//			bonusProducts.Products = append(bonusProducts.Products, nextProducts.Products...)
+//		case <-ctx.Done():
+//			log.Println("Sleep duration exceeded, continuing without the next products.")
+//		}
+//	}
+//
+//	return bonusProducts
+//}
+
 func (c *APIClient) GetProducts(accessToken string, page int32) model.BonusProducts {
-	pageNumber := int32(0)
 	totalPages := int32(0)
+	productsCh := make(chan []model.Product)
+	bonusProducts := model.BonusProducts{}
 
 	req := c.BuildGetProductsRequest(accessToken, page)
 	res := c.DoRequest(req)
 	searchData := c.ReadResponseBodyGetProducts(res)
 
-	pageNumber = searchData.Page.Number
 	totalPages = searchData.Page.TotalPages
-	bonusProducts := c.GetBonusProducts(searchData)
+	bonusProducts = c.GetBonusProducts(searchData)
 
-	if pageNumber < totalPages {
-		pageNumber++
-		sleepDuration := time.Second
-		ctx, cancel := context.WithTimeout(context.Background(), sleepDuration)
-		defer cancel()
+	// Fetch pages concurrently
+	for i := int32(1); i <= totalPages; i++ {
+		go func(page int32) {
+			nextProducts := c.GetProductsForPage(accessToken, page)
+			productsCh <- nextProducts.Products
+		}(i)
+	}
 
-		select {
-		case <-time.After(sleepDuration):
-			nextProducts := c.GetProducts(accessToken, pageNumber)
-			bonusProducts.Products = append(bonusProducts.Products, nextProducts.Products...)
-		case <-ctx.Done():
-			log.Println("Sleep duration exceeded, continuing without the next products.")
-		}
+	// Collect all products from the channel
+	for i := int32(1); i <= totalPages; i++ {
+		products := <-productsCh
+		bonusProducts.Products = append(bonusProducts.Products, products...)
 	}
 
 	return bonusProducts
+}
+
+func (c *APIClient) GetProductsForPage(accessToken string, page int32) model.BonusProducts {
+	req := c.BuildGetProductsRequest(accessToken, page)
+	res := c.DoRequest(req)
+	searchData := c.ReadResponseBodyGetProducts(res)
+	return c.GetBonusProducts(searchData)
 }
 
 func (c *APIClient) BuildGetProductsRequest(accessToken string, page int32) *http.Request {
