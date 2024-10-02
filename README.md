@@ -21,7 +21,6 @@ make run
 This will build and run the project containers locally.
 
 Access the PhpMyAdmin database at `http://0.0.0.0:9090/`
-Before requesting /api/products import the `./database-sample/ah_bonus.sql` file in the database just to have the initial tables and structure.
 
 ## Cleanup
 
