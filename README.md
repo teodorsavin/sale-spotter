@@ -42,8 +42,8 @@ The api has the following endpoints:
     - `curl -X POST http://0.0.0.0:8080/login -H "Content-Type: application/json" -d '{"username": "teodor"}'`
 - `GET /api/brands` - Get Brands
   - curl command:
-    - `curl http://0.0.0.0:8080/api/brands -H "Authorization: Bearer #TOKEN#"`
+    - `curl http://0.0.0.0:8080/api/brands -H "Authorization: Bearer #TOKEN#" | jq`
 - `GET /api/products` - Get Products
   - curl command:
-    - `curl http://0.0.0.0:8080/api/products -H "Authorization: Bearer #TOKEN#"`
+    - `curl http://0.0.0.0:8080/api/products -H "Authorization: Bearer #TOKEN#" | jq`
     - This just saves the products in the DB. It doesn't return anything.
