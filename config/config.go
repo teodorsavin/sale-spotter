@@ -1,26 +1,37 @@
 package config
 
 import (
-	"database/sql"
 	"fmt"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"os"
-
-	_ "github.com/go-sql-driver/mysql"
+	"teodorsavin/ah-bonus/model"
 )
 
-func ConnectDB() *sql.DB {
-	dbDriver := "mysql"
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	hostName := os.Getenv("DB_HOST")
-
-	dbURI := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPass, hostName, dbName)
-
-	db, err := sql.Open(dbDriver, dbURI)
-	if err != nil {
-		panic(err.Error())
+func SetupDatabase() (*gorm.DB, error) {
+	// Validate environment variables
+	host, name, user, password := os.Getenv("DB_HOST"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")
+	if host == "" || name == "" || user == "" || password == "" {
+		return nil, fmt.Errorf("missing required environment variables for database connection")
 	}
 
-	return db
+	// Build the DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, name)
+
+	// Connect to the database
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Set collation for all tables
+	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
+
+	// Run migrations
+	err = db.AutoMigrate(&model.Product{}, &model.Image{}, &model.DiscountLabel{})
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
