@@ -1,13 +1,13 @@
 package controller
 
 import (
-	"net/http"
+	"gorm.io/gorm"
+	"teodorsavin/ah-bonus/database"
+	"teodorsavin/ah-bonus/model"
 	"teodorsavin/ah-bonus/service"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
-	"teodorsavin/ah-bonus/database"
 )
 
 const (
@@ -15,24 +15,32 @@ const (
 	timeout = time.Second * 30
 )
 
-// GetProducts responds with the list of all products as JSON.
-func GetProducts(c *gin.Context) {
-	data := database.GetAllProducts()
+func GetProducts(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var products []model.Product
+		if err := db.Preload("Images").Preload("DiscountLabels").Find(&products).Error; err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
 
-	// If we don't find products in out database, we call the API and save products in our database
-	if len(data.Products) == 0 {
-		apiClient := service.NewAPIClient(baseUrl, timeout)
-		token := apiClient.Login()
-		dataFromAPI := apiClient.GetProducts(token, 0)
+		if len(products) == 0 {
+			products = RequestProducts(db)
+		}
 
-		if len(dataFromAPI.Products) > 0 {
-			err := database.InsertProductsBulk(dataFromAPI.Products)
-			if err != nil {
-				return
-			}
-			data = dataFromAPI
+		c.JSON(200, products)
+	}
+}
+
+func RequestProducts(db *gorm.DB) []model.Product {
+	apiClient := service.NewAPIClient(baseUrl, timeout)
+	token := apiClient.Login()
+	dataFromAPI := apiClient.GetProducts(token, 0)
+
+	if len(dataFromAPI.Products) > 0 {
+		err := database.InsertProductsBulk(db, dataFromAPI.Products)
+		if err != nil {
+			return []model.Product{} // return empty slice if error occurs
 		}
 	}
-
-	c.IndentedJSON(http.StatusOK, data)
+	return dataFromAPI.Products
 }

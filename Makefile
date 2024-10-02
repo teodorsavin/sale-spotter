@@ -10,6 +10,7 @@ help:
 	@echo "  help      : Displays this help message"
 
 setup:
+	cp .env.example .env
 	go mod download
 
 run:
