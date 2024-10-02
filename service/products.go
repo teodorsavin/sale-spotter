@@ -37,7 +37,7 @@ func (c *APIClient) GetProducts(accessToken string, page int32) model.BonusProdu
 
 	if pageNumber < totalPages {
 		pageNumber++
-		sleepDuration := 2 * time.Second
+		sleepDuration := time.Second
 		ctx, cancel := context.WithTimeout(context.Background(), sleepDuration)
 		defer cancel()
 
