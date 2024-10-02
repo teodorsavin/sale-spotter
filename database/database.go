@@ -1,7 +1,9 @@
-package controller
+package database
 
 import (
 	"log"
+
+	"github.com/microcosm-cc/bluemonday"
 
 	"teodorsavin/ah-bonus/config"
 	"teodorsavin/ah-bonus/model"
@@ -12,8 +14,7 @@ var db = config.ConnectDB()
 const (
 	selectProductsQuery = `
 		SELECT p.webshop_id, p.hq_id, p.title, p.sales_unit_size, p.current_price, p.price_before_bonus, p.order_availability_status, 
-			p.main_category, p.sub_category, p.brand, p.available_online, p.description_highlights, p.description_full, p.is_bonus,
-			i.width, i.height, i.url
+			p.main_category, p.sub_category, p.brand, p.available_online, p.description_highlights, p.description_full, p.is_bonus, i.width, i.height, i.url
 		FROM products p
 		INNER JOIN images i ON p.id = i.product_id
 		WHERE p.inserted_at >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY) + INTERVAL 1 DAY + INTERVAL '00:00:00' HOUR_SECOND`
@@ -26,8 +27,20 @@ const (
 
 	insertProductQuery = `
 		INSERT INTO products 
-		(webshop_id, hq_id, title, sales_unit_size, current_price, price_before_bonus, order_availability_status,
-		main_category, sub_category, brand, available_online, description_highlights, description_full, is_bonus) 
+		(webshop_id,
+		 hq_id,
+		 title,
+		 sales_unit_size,
+		 current_price,
+		 price_before_bonus,
+		 order_availability_status,
+		 main_category,
+		 sub_category,
+		 brand,
+		 available_online,
+		 description_highlights,
+		 description_full,
+		 is_bonus) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	insertImageQuery = `
@@ -90,6 +103,7 @@ func GetAllProducts() model.BonusProducts {
 		webshopID = product.WebshopId
 		if existingProduct, ok := productMap[webshopID]; ok {
 			existingProduct.Images = append(existingProduct.Images, image)
+			productMap[webshopID] = existingProduct
 		} else {
 			product.Images = []model.Image{image}
 			productMap[webshopID] = &product
@@ -121,12 +135,33 @@ func AllBrands() model.Brands {
 	return brands
 }
 
+// StripHTMLTags strips all HTML tags from the input string
+func StripHTMLTags(input string) string {
+	policy := bluemonday.StrictPolicy()
+	// This will strip all HTML tags and return plain text
+	return policy.Sanitize(input)
+}
+
 func InsertProduct(product model.Product) error {
+	descriptionHighlights := StripHTMLTags(product.DescriptionHighlights)
+	descriptionFull := StripHTMLTags(product.DescriptionFull)
+
 	// Insert the product
 	res, err := db.Exec(insertProductQuery,
-		product.WebshopId, product.HqId, product.Title, product.SalesUnitSize, product.CurrentPrice,
-		product.PriceBeforeBonus, product.OrderAvailabilityStatus, product.MainCategory, product.SubCategory,
-		product.Brand, product.AvailableOnline, product.DescriptionHighlights, product.DescriptionFull, product.IsBonus)
+		product.WebshopId,
+		product.HqId,
+		product.Title,
+		product.SalesUnitSize,
+		product.CurrentPrice,
+		product.PriceBeforeBonus,
+		product.OrderAvailabilityStatus,
+		product.MainCategory,
+		product.SubCategory,
+		product.Brand,
+		product.AvailableOnline,
+		descriptionHighlights,
+		descriptionFull,
+		product.IsBonus)
 	if err != nil {
 		log.Print(err)
 		return err
@@ -176,11 +211,25 @@ func InsertProductsBulk(products []model.Product) error {
 	defer imageStmt.Close()
 
 	for _, product := range products {
+		descriptionHighlights := StripHTMLTags(product.DescriptionHighlights)
+		descriptionFull := StripHTMLTags(product.DescriptionFull)
+
 		// Insert the product
 		res, err := productStmt.Exec(
-			product.WebshopId, product.HqId, product.Title, product.SalesUnitSize, product.CurrentPrice,
-			product.PriceBeforeBonus, product.OrderAvailabilityStatus, product.MainCategory, product.SubCategory,
-			product.Brand, product.AvailableOnline, product.DescriptionHighlights, product.DescriptionFull, product.IsBonus,
+			product.WebshopId,
+			product.HqId,
+			product.Title,
+			product.SalesUnitSize,
+			product.CurrentPrice,
+			product.PriceBeforeBonus,
+			product.OrderAvailabilityStatus,
+			product.MainCategory,
+			product.SubCategory,
+			product.Brand,
+			product.AvailableOnline,
+			descriptionHighlights,
+			descriptionFull,
+			product.IsBonus,
 		)
 		if err != nil {
 			log.Print(err)
